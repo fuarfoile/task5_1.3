@@ -15,7 +15,7 @@ public class Main {
 
     public static void main(String[] args) throws InterruptedException {
         int threadsCount = 100;
-        int mapSize = 100_000;
+        int mapSize = 10_000;
         HashMap<String, String> hashMap = new HashMap<>(0, 0.75f);
         ConcurrentHashMap<String, String> concurrentHashMap = new ConcurrentHashMap<>(0, 0.75f);
         Thread[] threads = new Thread[threadsCount];
@@ -33,7 +33,7 @@ public class Main {
         Long timer = System.currentTimeMillis();
 
         for (int i = 0; i < threads.length; i++) {
-            threads[i] = new Thread(new Write(map, mapSize));
+            threads[i] = new Thread(new Writer(map, mapSize));
             threads[i].start();
         }
 
@@ -47,7 +47,7 @@ public class Main {
         Long timer = System.currentTimeMillis();
 
         for (int i = 0; i < threads.length; i++) {
-            threads[i] = new Thread(new Read(map, mapSize));
+            threads[i] = new Thread(new Reader(map, mapSize));
             threads[i].start();
         }
 
@@ -59,11 +59,11 @@ public class Main {
     }
 }
 
-class Write implements Runnable{
-    private Map map;
+class Writer implements Runnable{
+    private final Map map;
     private int mapSize;
 
-    Write(Map map, int mapSize){
+    Writer(Map map, int mapSize){
         this.map = map;
         this.mapSize = mapSize;
     }
@@ -71,17 +71,23 @@ class Write implements Runnable{
     @Override
     public void run(){
         for (Integer i = 1; i <= mapSize; i++){
-            map.put(i.toString(), i.toString());
-            //System.out.println(Thread.currentThread() + " " + i);
+            if (map instanceof ConcurrentHashMap) {
+                map.put(i.toString(), i.toString());
+            } else {
+                synchronized (map) {
+                    map.put(i.toString(), i.toString());
+                    //System.out.println(Thread.currentThread() + " " + i);
+                }
+            }
         }
     }
 }
 
-class Read implements Runnable{
-    private Map map;
+class Reader implements Runnable{
+    private final Map map;
     private int mapSize;
 
-    Read(Map map, int mapSize){
+    Reader(Map map, int mapSize){
         this.map = map;
         this.mapSize = mapSize;
     }
@@ -89,8 +95,14 @@ class Read implements Runnable{
     @Override
     public void run(){
         for (Integer i = 1; i <= mapSize; i++){
-            map.get(i.toString());
-            //System.out.println(Thread.currentThread() + " " + i);
+            if (map instanceof ConcurrentHashMap) {
+                map.get(i.toString());
+            } else {
+                synchronized (map) {
+                    map.get(i.toString());
+                    //System.out.println(Thread.currentThread() + " " + i);
+                }
+            }
         }
     }
 }
